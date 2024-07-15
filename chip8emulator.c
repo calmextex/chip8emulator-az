@@ -11,7 +11,7 @@ typedef struct Chip8 {
     uint8_t delay;
     uint8_t sound;
     uint8_t *memory;
-    unit8_t *screen;
+    uint8_t *screen;
 } Chip8;
 
 Chip8* InitChip8(void) {
@@ -95,18 +95,33 @@ void EmulateChip80p(Chip8 *state) {
             } else {
                 state->PC += 2;
             }
+            break;
         case 0x0a:
             state->I = ((*op & 0x0f) << 8) | *(op + 1);
             state->PC += 2;
+            break;
         case 0x0b:
             state->PC = (uint16_t)state->V[0] + ((*op & 0x0f) << 8) | *(op + 1);
+            break;
         case 0x0c:
             uint8_t reg = *op & 0x0f;
             state->V[reg] = rand() & *(op + 1);
             state->PC += 2;
+            break;
         case 0x0d:
-            
+
         case 0x0e:
         case 0x0f:
     }
+}
+
+int main(int argc, char **argv) {
+    Chip8 *state = InitChip8();
+    FILE *f = fopen(argv[1], "rb");
+    fread(state->memory + 0x200, 1, 4096 - 0x200, f);
+    fclose(f);
+    while (1) {
+        EmulateChip80p(state);
+    }
+    return 0;
 }
