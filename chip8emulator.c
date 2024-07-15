@@ -87,6 +87,61 @@ void EmulateChip80p(Chip8 *state) {
             state->PC += 2;
             break;
         case 0x08:
+            int lastnib = *(op + 1) & 0x0f;
+            uint8_t reg1 = *op & 0x0f;
+            uint8_t reg2 = *(op + 1) >> 4;
+
+            switch (lastnib) {
+                case 0x00:
+                    state->V[reg1] = state->V[reg2];
+                    break;
+                case 0x01:
+                    state->V[reg1] |= state->V[reg2];
+                    break;
+                case 0x02:
+                    state->V[reg1] &= state->V[reg2];
+                    break;
+                case 0x03:
+                    state->V[reg1] ^= state->V[reg2];
+                    break;
+                case 0x04:
+                    if (state->V[reg1] + state->V[reg2] > 0xff) {
+                        state->V[0xf] = 1;
+                    } else {
+                        state->V[0xf] = 0;
+                    }
+                    state->V[reg1] += state->V[reg2];
+                    break;
+                case 0x05:
+                    if (state->V[reg1] > state->V[reg2]) {
+                        state->V[0xf] = 1;
+                    } else {
+                        state->V[0xf] = 0;
+                    }
+                    state->V[reg1] -= state->V[reg2];
+                    break;
+                case 0x06:
+                    state->V[0xf] = state->V[reg1] & 0x01;
+                    state->V[reg1] >>= 1;
+                    break;
+                case 0x07:
+                    if (state->V[reg2] > state->V[reg1]) {
+                        state->V[0xf] = 1;
+                    } else {
+                        state->V[0xf] = 0;
+                    }
+                    state->V[reg1] = state->V[reg2] - state->V[reg1];
+                    break;
+                case 0x0e:
+                    state->V[0xf] = state->V[reg1] >> 7;
+                    state->V[reg1] <<= 1;
+                    break;
+                default:
+                    printf("Unknown opcode: 0x%04x\n", *op);
+                    break;
+            }
+            state->PC += 2;
+            
         case 0x09:
             uint8_t reg1 = *op & 0x0f;
             uint8_t reg2 = *(op + 1) >> 4;
@@ -109,9 +164,96 @@ void EmulateChip80p(Chip8 *state) {
             state->PC += 2;
             break;
         case 0x0d:
-
+            // Drawing sprites
+            uint8_t x = state->V[*op & 0x0f];
+            uint8_t y = state->V[*(op + 1) >> 4];
+            uint8_t height = *op & 0x0f;
+            
+            state->V[0xf] = 0;
+            for (int i = 0; i < height; i++) {
+                uint8_t *sprite = &state->memory[state->I + i];
+                int spritebit = 7;
+                for (int j = (int) x; j < (int) x + 8; j++) {
+                    uint8_t screenbit = (*sprite >> spritebit) & 0x01;
+                    if (screenbit) {
+                        uint8_t *screenbyte = &state->screen[(y + i) * 8 + j / 8];
+                        uint8_t desscreenbyt = *screenbyte;
+                        uint8_t destructbit = desscreenbyt & (0x80 >> (j % 8));
+                        screenbit = screenbit << (7 - j % 8);
+                        if (spritebit & destructbit) {
+                            state->V[0xf] = 1;
+                        }
+                        destructbit ^= screenbit;
+                        desscreenbyt = (desscreenbyt & ~(0x80 >> (j % 8))) | destructbit;
+                        *screenbyte = desscreenbyt;
+                    }
+                    spritebit--;
+                }
+            }
+            state->PC += 2;
+            break;
         case 0x0e:
+            uint8_t reg = *op & 0x0f;
+            switch (*(op + 1)) {
+                case 0x9e:
+                    if (state->V[reg] == 1) {
+                        state->PC += 4;
+                    } else {
+                        state->PC += 2;
+                    }
+                    break;
+                case 0xa1:
+                    if (state->V[reg] != 1) {
+                        state->PC += 4;
+                    } else {
+                        state->PC += 2;
+                    }
+                    break;
+                default:
+                    printf("Unknown opcode: 0x%04x\n", *op);
+                    break;
+            }
+            break;
         case 0x0f:
+            uint8_t reg = *op & 0x0f;
+            switch (*(op + 1)) {
+                case 0x07:
+                    state->V[reg] = state->delay;
+                    break;
+                case 0x0a:
+                    // Wait for key press
+                    break;
+                case 0x15:
+                    state->delay = state->V[reg];
+                    break;
+                case 0x18:
+                    state->sound = state->V[reg];
+                    break;
+                case 0x1e:
+                    state->I += state->V[reg];
+                    break;
+                case 0x29:
+                    state->I = state->V[reg] * 5;
+                    break;
+                case 0x33:
+                    state->memory[state->I] = state->V[reg] / 100;
+                    state->memory[state->I + 1] = (state->V[reg] / 10) % 10;
+                    state->memory[state->I + 2] = state->V[reg] % 10;
+                    break;
+                case 0x55:
+                    for (int i = 0; i <= reg; i++) {
+                        state->memory[state->I + i] = state->V[i];
+                    }
+                    break;
+                case 0x65:
+                    for (int i = 0; i <= reg; i++) {
+                        state->V[i] = state->memory[state->I + i];
+                    }
+                    break;
+                default:
+                    printf("Unknown opcode: 0x%04x\n", *op);
+                    break;
+            }
     }
 }
 
