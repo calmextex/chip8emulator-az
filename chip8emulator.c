@@ -15,9 +15,9 @@ typedef struct Chip8 {
 } Chip8;
 
 Chip8* InitChip8(void) {
-    Chip8* s = calloc(sizeof(Chip8), 1);
+    Chip8* s = calloc(1,sizeof(Chip8));
     s->memory = calloc(4096, 1);
-    s->screen = s->memory[0xf00];
+    s->screen = (uint8_t *)(s->memory+0xf00);
     s->PC = 0x200;
     s->SP = 0xfa0;
     return s;
@@ -53,6 +53,7 @@ void EmulateChip80p(Chip8 *state) {
             state->PC = ((*op & 0x0f) << 8) | *(op + 1);
             break;
         case 0x03:
+            {
             uint8_t reg = *op & 0x0f;
             if (state->V[reg] == *(op + 1)) {
                 state->PC += 4;
@@ -60,7 +61,9 @@ void EmulateChip80p(Chip8 *state) {
                 state->PC += 2;
             }
             break;
+            }
         case 0x04:
+            {
             uint8_t reg = *op & 0x0f;
             if (state->V[reg] != *(op + 1)) {
                 state->PC += 4;
@@ -68,7 +71,9 @@ void EmulateChip80p(Chip8 *state) {
                 state->PC += 2;
             }
             break;
+            }
         case 0x05:
+            {
             uint8_t reg = *op & 0x0f;
             if (state->V[reg] == (*(op + 1) >> 4)) {
                 state->PC += 4;
@@ -76,17 +81,23 @@ void EmulateChip80p(Chip8 *state) {
                 state->PC += 2;
             }
             break;
+            }
         case 0x06:
+        {
             uint8_t reg = *op & 0x0f;
             state->V[reg] = *(op + 1);
             state->PC += 2;
             break;
+        }
         case 0x07:
+        {
             uint8_t reg = *op & 0x0f;
             state->V[reg] += *(op + 1);
             state->PC += 2;
             break;
+        }
         case 0x08:
+        {
             int lastnib = *(op + 1) & 0x0f;
             uint8_t reg1 = *op & 0x0f;
             uint8_t reg2 = *(op + 1) >> 4;
@@ -105,6 +116,7 @@ void EmulateChip80p(Chip8 *state) {
                     state->V[reg1] ^= state->V[reg2];
                     break;
                 case 0x04:
+                {
                     if (state->V[reg1] + state->V[reg2] > 0xff) {
                         state->V[0xf] = 1;
                     } else {
@@ -112,6 +124,7 @@ void EmulateChip80p(Chip8 *state) {
                     }
                     state->V[reg1] += state->V[reg2];
                     break;
+                }
                 case 0x05:
                     if (state->V[reg1] > state->V[reg2]) {
                         state->V[0xf] = 1;
@@ -141,8 +154,10 @@ void EmulateChip80p(Chip8 *state) {
                     break;
             }
             state->PC += 2;
-            
+            break;
+        }   
         case 0x09:
+        {
             uint8_t reg1 = *op & 0x0f;
             uint8_t reg2 = *(op + 1) >> 4;
             if (state->V[reg1] == state->V[reg2]) {
@@ -151,6 +166,7 @@ void EmulateChip80p(Chip8 *state) {
                 state->PC += 2;
             }
             break;
+        }
         case 0x0a:
             state->I = ((*op & 0x0f) << 8) | *(op + 1);
             state->PC += 2;
@@ -159,11 +175,14 @@ void EmulateChip80p(Chip8 *state) {
             state->PC = (uint16_t)state->V[0] + ((*op & 0x0f) << 8) | *(op + 1);
             break;
         case 0x0c:
+        {
             uint8_t reg = *op & 0x0f;
             state->V[reg] = rand() & *(op + 1);
             state->PC += 2;
             break;
+        }
         case 0x0d:
+        {
             // Drawing sprites
             uint8_t x = state->V[*op & 0x0f];
             uint8_t y = state->V[*(op + 1) >> 4];
@@ -192,7 +211,9 @@ void EmulateChip80p(Chip8 *state) {
             }
             state->PC += 2;
             break;
+        }
         case 0x0e:
+        {
             uint8_t reg = *op & 0x0f;
             switch (*(op + 1)) {
                 case 0x9e:
@@ -214,7 +235,9 @@ void EmulateChip80p(Chip8 *state) {
                     break;
             }
             break;
+        }
         case 0x0f:
+        {
             uint8_t reg = *op & 0x0f;
             switch (*(op + 1)) {
                 case 0x07:
@@ -254,6 +277,7 @@ void EmulateChip80p(Chip8 *state) {
                     printf("Unknown opcode: 0x%04x\n", *op);
                     break;
             }
+        }
     }
 }
 

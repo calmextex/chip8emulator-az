@@ -26,7 +26,7 @@ void Chip8Disassembler(uint8_t *buffer, int pc) {
         case 0x01: 
             {
                 uint8_t addr = code[0] & 0x0f;
-                print("%-10s $%01x%02x", "JUMP", addr, code[1]);
+                printf("%-10s $%01x%02x", "JUMP", addr, code[1]);
             }
             break;
         case 0x02: 
@@ -140,7 +140,7 @@ void Chip8Disassembler(uint8_t *buffer, int pc) {
         case 0x0a:
             {
                 uint8_t addr = code[0] & 0x0f;
-                printf("%-10s I, #$01x%02x", "MVI", addr, code[1]);
+                printf("%-10s $%01x%02x", "MVI", addr, code[1]);
             }
             break;
         case 0x0b: 
@@ -240,6 +240,9 @@ void Chip8Disassembler(uint8_t *buffer, int pc) {
                     break;
                 default: printf("Unknown opcode: F"); break;
             }
+            break;
+        default: printf("Unknown opcode: %01x", firstnib); break;
+    }
 
 }
 
